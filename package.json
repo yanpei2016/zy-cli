@@ -1,0 +1,22 @@
+{
+  "name": "zy-cli",
+  "version": "1.0.0",
+  "description": "自定义前端脚手架",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "zy": "bin/zy.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "child_process": "^1.0.2",
+    "commander": "^4.1.1",
+    "ejs": "^3.1.3",
+    "iconv-lite": "^0.6.2",
+    "inquirer": "^7.0.4"
+  }
+}
