@@ -1,5 +1,5 @@
 {
-  "name": "zy-cli",
+  "name": "ezy-cli",
   "version": "1.0.0",
   "description": "自定义前端脚手架",
   "main": "index.js",
@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "zy": "bin/zy.js"
+    "ezy": "bin/zy.js"
   },
   "author": "",
   "license": "ISC",
