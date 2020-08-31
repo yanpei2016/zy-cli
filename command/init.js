@@ -1,9 +1,10 @@
 const inquirer = require('inquirer')  // 命令行问询插件
 const iconv = require('iconv-lite'); // 编码格式化
 const chalk =require('chalk')  // log信息  颜色
+const ora = require('ora'); // 命令行 loading
 const {exec} = require('child_process') // nodejs  里面的  promise
 chalk.level = 3 // 设置chalk等级为3  支持的颜色 0 all  disabled; 1 16种 ； 2 256种； 3  1亿6千万种
-const fs = require('fs')
+const fs = require('fs') // nodejs  文件系统菜单
 const ejs = require('ejs') // 模板语言
 module.exports = ()=>{
     let prompts = [{
@@ -33,7 +34,7 @@ module.exports = ()=>{
         default:true
     },{
         type:'list',
-        message:'ui框架：',
+        message:'ui组件：',
         name:'UIfrag',
         choices:[
             {name:'no UI fragment',value:'none'},
@@ -52,43 +53,66 @@ module.exports = ()=>{
         ]
     }]
     inquirer.prompt(prompts).then(answer=>{ // 通过用户的输入进行各种操作
-        console.log(chalk.green('开始初始化文件\n'))
-        console.log(chalk.gray('初始化中...'))
+        const spinner = ora({
+            text: 'Loading Template',
+            spinner:{
+                interval: 80, // Optional
+                // frames: ['!', '@', '#', '$', '%', '^', '&', '*']
+                // "frames": [
+                //     "▓",
+                //     "▒",
+                //     "░"
+                // ]
+                "frames": [
+                    "⠋",
+                    "⠙",
+                    "⠹",
+                    "⠸",
+                    "⠼",
+                    "⠴",
+                    "⠦",
+                    "⠧",
+                    "⠇",
+                    "⠏"
+                ]
+            }
+        }).start();
         const gitUrl = 'https://github.com/yanpei2016/zy-temp.git'
         exec(`git clone ${gitUrl}`,{ encoding: 'binary' },(error,stdout,stderr)=>{ // 克隆模板并进入项目根目录
-            console.log(chalk.green('模板开始下载'))
             if (error) { // 当有错误时打印出错误并退出操作
                 console.log(iconv.decode(new Buffer(stderr, 'binary'), 'cp936'))
-                console.log(chalk.red('拷贝文件失败'))
+                console.log(chalk.red('模板下载失败，请检查网络后再下载'))
                 process.exit()
             }
-            console.log(chalk.green('模板下载完毕'))
+            spinner.succeed('Loading template successed')
+            // 修改下载文件目录文案
+            fs.renameSync(process.cwd()+'\\zy-temp',process.cwd()+`/${answer.projectName}`)
             // 当配置vuex时进行的操作
             if(answer.useVuex){
                 fs.mkdirSync(`${process.cwd()}/${answer.projectName}/src/store/`)
                 fs.mkdirSync(`${process.cwd()}/${answer.projectName}/src/store/module/`)
-                // fs.mkdirSync(`${process.cwd()}/${answer.projectName}/src/store/modules/module`)
-                let moduleFiles = ['index.js','module/actions.js','module/index.js','module/mutations.js','module/state.js']
+                let moduleFiles = ['index.js','module/index.js']
                 moduleFiles.forEach(val=>{
-                    let fileData = fs.readFileSync(`${process.cwd()}/templates/vuex/${val}`)
+                    let fileData = fs.readFileSync(__dirname+`/../templates/vuex/${val}`)
                     fs.writeFileSync(`${process.cwd()}/${answer.projectName}/src/store/${val}`,fileData)
                 })
-                console.log(chalk.green('vuex配置完成'))
+                spinner.succeed('Loading vuex successed')
             }
             // 当配置vue-router时进行的操作
             if(answer.useVueRouter){
                 fs.mkdirSync(`${process.cwd()}/${answer.projectName}/src/router/`)
                 let moduleFiles = ['index.js']
                 moduleFiles.forEach(val=>{
-                    let fileData = fs.readFileSync(`${process.cwd()}/templates/vue-router/${val}`)
+                    let fileData = fs.readFileSync(__dirname+`/../templates/vue-router/${val}`)
                     fs.writeFileSync(`${process.cwd()}/${answer.projectName}/src/router/${val}`,fileData)
                 })
-                console.log(chalk.green('vue-router配置完成'))
+                spinner.succeed('Loading vue-router successed')
             }
-            let files = ['public/index.html','src/App.vue','src/main.js','package.json']
+            let files = ['public/index.html','src/App.vue','src/main.js','src/components/HelloWorld.vue','package.json','vue.config.js','babel.config.js']
             new Promise(resolve=>{
                 files.forEach((val,index)=>{
                     ejs.renderFile(`${answer.projectName}/${val}`,answer,(err,str)=>{
+                        debugger
                         fs.writeFile(`${answer.projectName}/${val}`,str,()=>{
                             if(index===files.length-1){
                                 resolve()
@@ -97,18 +121,32 @@ module.exports = ()=>{
                     })
                 })
             }).then(()=>{
-                console.log(chalk.green('初始化完成'))
-                console.log(chalk.blue(`cd ${answer.projectName} && yarn install`))
-                process.exit()
-                // exec(`cd ${answer.projectName} && yarn install`,(err,stdout,stderr)=>{
-                //     console.log(chalk.green('依赖包下载完毕'))
-                //     if (error) { // 当有错误时打印出错误并退出操作
-                //         console.log(chalk.red('拷贝文件失败'))
-                //         process.exit()
-                //     }
-                //     console.log(chalk.green('初始化完成'))
-                //     process.exit() // 退出这次命令行操作
-                // })
+                spinner.succeed('format template successed')
+                spinner.stop()
+                const downloadNodemodules = ora({
+                    text: 'download node_modules',
+                    spinner:{
+                        interval: 80, // Optional
+                        // frames: ['!', '@', '#', '$', '%', '^', '&', '*']
+                        "frames": [
+                            "▓",
+                            "▒",
+                            "░"
+                        ]
+                    }
+                }).start();
+
+                exec(`cd ${answer.projectName} && yarn install`,(err,stdout,stderr)=>{
+                    if (error) { // 当有错误时打印出错误并退出操作
+                        downloadNodemodules.fail('node_modules downLoad fail')
+                        downloadNodemodules.stop()
+                        process.exit()
+                    }
+                    downloadNodemodules.succeed('node_modules downLoad successed')
+                    downloadNodemodules.stop()
+                    console.log(chalk.blue(`cd ${answer.projectName} && yarn serve`))
+                    process.exit() // 退出这次命令行操作
+                })
             })
         })
     })
